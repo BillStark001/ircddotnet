@@ -79,7 +79,7 @@ namespace IrcD.Core
 
         private readonly byte[] _buffer = new byte[MaxBufferSize];
         private EndPoint _ep = new IPEndPoint(0, 0);
-        private EndPoint _localEndPoint;
+        private EndPoint? _localEndPoint;
 
         public ServerOptions Options { get; }
 
@@ -90,7 +90,7 @@ namespace IrcD.Core
         public DateTime ServerCreated { get; }
 
         #region Events
-        public event EventHandler<RehashEventArgs> ServerRehash;
+        public event EventHandler<RehashEventArgs>? ServerRehash;
         internal void OnRehashEvent(object sender, RehashEventArgs e)
         {
             ServerRehash?.Invoke(sender, e);
@@ -129,7 +129,7 @@ namespace IrcD.Core
             SetupChannelTypes();
         }
 
-        private void SetupCommands()
+        protected virtual void SetupCommands()
         {
             Commands.Add(new Admin(this));
             Commands.Add(new Away(this));
@@ -190,7 +190,7 @@ namespace IrcD.Core
             }
         }
 
-        private void SetupModes()
+        protected virtual void SetupModes()
         {
             SupportedChannelModes.Add(ModeFactory.AddChannelMode<ModeBan>());
             if (Options.IrcMode == IrcMode.Rfc2810 || Options.IrcMode == IrcMode.Modern)
@@ -224,7 +224,7 @@ namespace IrcD.Core
             SupportedUserModes.Add(ModeFactory.AddUserMode<ModeWallops>());
         }
 
-        private void SetupChannelTypes()
+        protected virtual void SetupChannelTypes()
         {
             ChannelType chan = new NormalChannel();
             SupportedChannelTypes.Add(chan.Prefix, chan);
@@ -300,7 +300,7 @@ namespace IrcD.Core
                             if (Sockets[s].IsAcceptSocket)
                             {
                                 Socket temp = s.Accept();
-                                Sockets.Add(temp, new UserInfo(this, temp, ((IPEndPoint)temp.RemoteEndPoint).Address.ToString(), false, String.IsNullOrEmpty(Options.ServerPass)));
+                                Sockets.Add(temp, new UserInfo(this, temp, ((IPEndPoint)temp.RemoteEndPoint!).Address.ToString(), false, String.IsNullOrEmpty(Options.ServerPass)));
                                 Logger.Log("New Client connected!", 4, "MainLoop");
                             }
                             else
@@ -384,8 +384,8 @@ namespace IrcD.Core
                 return;  // invalid message
             }
 
-            string prefix = null;
-            string command = null;
+            string? prefix = null;
+            string? command = null;
             var replyCode = ReplyCode.Null;
             var args = new List<string>();
 
@@ -462,11 +462,11 @@ namespace IrcD.Core
             FilterArgs(args);
             if (replyCode == ReplyCode.Null)
             {
-                Commands.Handle(info, prefix, command, args, line.Length);
+                Commands.Handle(info, prefix ?? "", command, args, line.Length);
             }
             else
             {
-                Commands.Handle(info, prefix, replyCode, args, line.Length);
+                Commands.Handle(info, prefix ?? "", replyCode, args, line.Length);
             }
         }
 
